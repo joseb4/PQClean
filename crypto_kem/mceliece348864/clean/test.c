@@ -75,7 +75,7 @@ int main(void) {
     }
     
     unsigned char y[SYS_N/8];
-    unsigned char x[(PK_NCOLS + 7) / 8]; // PK_NCOLS bits, packed into bytes
+    unsigned char x[PK_ROW_BYTES]; // PK_NCOLS bits, packed into bytes
     unsigned char G[PK_NROWS * SYS_N];
     unsigned char GG[PK_NCOLS * SYS_N/8];
     unsigned char syn[SYND_BYTES];
@@ -94,12 +94,11 @@ int main(void) {
     }
 
     // Generate random message x of correct length
-    for (size_t i = 0; i < PK_NCOLS; i++) {
-        if (rand() & 1) {
-            x[i/8] |= 1 << (i % 8);
-        }
+    for (size_t i = 0; i < PK_ROW_BYTES; i++) {
+            x[i] = rand() % 256;
+
     }
-    print_binary(x, PK_NROWS/8, "x (random vector)");
+    print_binary(x, PK_ROW_BYTES, "x (random vector)");
     PQCLEAN_MCELIECE348864_CLEAN_codeword(xG, pk, x); 
     print_binary(xG, SYS_N/8, "Codeword");
     //PQCLEAN_MCELIECE348864_CLEAN_build_G_matrix(G, pk);
@@ -112,7 +111,7 @@ int main(void) {
     fprintf(stderr, "Encryption failed\n");
     return 1;
     }    
-    print_binary(syn, SYS_N/8, "syndrome of worderod");
+    print_binary(syn, SYND_BYTES, "syndrome of worderod");
 /*
 
 

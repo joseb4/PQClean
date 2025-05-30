@@ -109,6 +109,7 @@ static void gen_e(unsigned char *e) {
 
 /* input: public key pk, error vector e */
 /* output: syndrome s */
+/* H = [I | A]*/
 void syndrome(unsigned char *s, const unsigned char *pk, const unsigned char *e) {
     unsigned char b, row[SYS_N / 8];
     const unsigned char *pk_ptr = pk;
@@ -167,37 +168,47 @@ void syndrome(unsigned char *s, const unsigned char *pk, const unsigned char *e)
 
 
 void codeword(unsigned char *xG, const unsigned char *pk, const unsigned char *x) {
-    unsigned char b;
-    int i, j;
+    unsigned char b, row[PK_ROW_BYTES]; // row stores t
+    const unsigned char *pk_ptr = pk;
 
-    // Initialize output vector to zero (compressed bit vector)
-    for (i = 0; i < SYS_N / 8; i++) {
+    int i, j;
+    int n = SYS_N;
+    int k = PK_NCOLS;
+
+    for (i = 0; i < SYS_N/8; i++) {
         xG[i] = 0;
     }
 
-    // Loop over each row of G (i.e., each bit of the output)
-    for (i = 0; i < SYS_N; i++) {
-        b = 0;
-
-        if (i < PK_ROW_BYTES) {
-            // Compute the dot product of x with row i of -A^T
-            for (j = 0; j < PK_NROWS; j++) {
-                // Extract bit (i-th bit of row j in A^T == j-th row, i-th column of A)
-                unsigned char abit = (pk[j * PK_ROW_BYTES + i / 8] >> (i % 8)) & 1;
-                unsigned char xbit  = (x[j / 8] >> (j % 8)) & 1;
-                b ^= abit & xbit; // XOR the bit from A^T with the corresponding bit from x
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < PK_ROW_BYTES; j++) {
+            row[j] = 0;
+        }
+        if (i < n-k) {
+            // Copy the row from the public key
+            for (j = 0; j < PK_ROW_BYTES; j++) {
+                row[ j ] = pk_ptr[j];
             }
+            pk_ptr += PK_ROW_BYTES; // Move to the next row
         } else {
-            // Identity part: just use the x bit directly
-            int j = i - PK_NCOLS;
-            b = (x[j / 8] >> (j % 8)) & 1;
+            // Fill with zeros for the identity part
+            row[(i - PK_NROWS)/8] =  1 << (i - PK_NROWS) % 8;
         }
 
-        // Pack the result bit into xG
-        xG[i / 8] |= b << (i % 8);
+        b = 0;
+        for (j = 0; j < PK_ROW_BYTES; j++) {
+            b ^= row[j] & x[j]; // Add (bitwise) each coordinate.
+        }
+
+        b ^= b >> 4; // Add the last 4 bits with the first 4 bits
+        b ^= b >> 2; // Add the 2 last bits before the last 2 with the last 2 bits
+        b ^= b >> 1; // Add the last 2 bits together
+        b &= 1; // Check parity
+
+        xG[ i / 8 ] |= (b << (i % 8));
+
+
     }
 }
-
 
 
 
