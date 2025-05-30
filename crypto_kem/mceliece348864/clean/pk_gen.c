@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "controlbits.h"
@@ -140,6 +141,7 @@ int pk_gen(unsigned char *pk, unsigned char *sk, const uint32_t *perm, int16_t *
             }
 
             if ( uint64_is_zero_declassify((mat[ row ][ i ] >> j) & 1) ) { // return if not systematic
+                printf("Error: row %d is not systematic\n", row);
                 return -1;
             }
 
@@ -162,4 +164,67 @@ int pk_gen(unsigned char *pk, unsigned char *sk, const uint32_t *perm, int16_t *
     }
 
     return 0;
+}
+
+
+
+/*
+ * Construye la matriz generadora G en forma sistemática a partir de la clave pública.
+ *
+ * La clave pública pk contiene la matriz A (de dimensión 
+ *   PK_NROWS x ((SYS_N - PK_NROWS) bits)
+ * empaquetada en bytes (cada fila ocupa PK_ROW_BYTES bytes).
+ *
+ * La matriz generadora G se construye como:
+ *      G = [ -A^T | I ]
+ * de dimensión: (SYS_N - PK_NROWS) x SYS_N bits,
+ * es decir, (SYS_N - PK_NROWS) filas, y cada fila se almacena en SYS_N/8 bytes.
+ *
+ * Parámetros:
+ *   G  : salida, matriz generadora, definida como: 
+ *        unsigned char G[SYS_N - PK_NROWS][SYS_N/8]
+ *   pk : entrada, clave pública que contiene la matriz A, de dimensión:
+ *        unsigned char pk[PK_NROWS * PK_ROW_BYTES]
+ */
+void build_G_matrix(unsigned char G[][SYS_N / 8], const unsigned char *pk) {
+    int i, j;
+    // Número de filas de G (la dimensión k del código) es:
+    int num_rows_G = SYS_N - PK_NROWS;  // k = n - (n - k) = SYS_N - PK_NROWS
+    int total_bytes = SYS_N / 8;         // número de bytes por fila de G
+    
+    // Variable temporal para construir cada fila de G
+    unsigned char row[SYS_N / 8];
+    
+    /*
+     * Para cada fila i de G (0 <= i < num_rows_G), se construye:
+     *  - La parte izquierda: A^T, es decir, para cada columna j (0 <= j < PK_NROWS),
+     *    se extrae el bit de la fila j de A, en la posición i.
+     *  - La parte derecha: la matriz identidad, se coloca un 1 en la posición (PK_NROWS + i)
+     *    de la fila.
+     */
+    for (i = 0; i < num_rows_G; i++) {
+        // Inicializar la fila a cero.
+        for (j = 0; j < total_bytes; j++) {
+            row[j] = 0;
+        }
+        
+        // Construir la parte izquierda: para cada j, la entrada (j, i) de A^T es el bit (i) de la fila j de A.
+        // La matriz A está almacenada en pk de forma consecutiva: 
+        //   A[j] se encuentra en pk + j * PK_ROW_BYTES, y contiene PK_NCOLS bits, donde PK_NCOLS = SYS_N - PK_NROWS.
+        for (j = 0; j < PK_NROWS; j++) {
+            const unsigned char *A_row = pk + j * PK_ROW_BYTES;
+            // Extraer el bit i de A_row.
+            int bit = (A_row[i / 8] >> (i % 8)) & 1;
+            if (bit)
+                row[j / 8] |= (1 << (j % 8));
+        }
+        
+        // Construir la parte derecha: identidad de dimensión (SYS_N - PK_NROWS) bits.
+        // En la fila i, se coloca un 1 en la posición (PK_NROWS + i).
+        int pos = PK_NROWS + i;
+        row[pos / 8] |= (1 << (pos % 8));
+        
+        // Copiar la fila construida en G[i].
+        memcpy(G[i], row, total_bytes);
+    }
 }

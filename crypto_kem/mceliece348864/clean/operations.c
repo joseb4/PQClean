@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 /* Include last because of issues with unistd.h's encrypt definition */
 #include "encrypt.h"
@@ -24,7 +25,7 @@ int crypto_kem_enc(
     unsigned char one_ec[ 1 + SYS_N / 8 + SYND_BYTES ] = {1};
 
     //
-
+    // Calculates the syndrome of e
     encrypt(c, pk, e);
 
     memcpy(one_ec + 1, e, SYS_N / 8);
@@ -130,6 +131,7 @@ int crypto_kem_keypair
         if (pk_gen(pk, skp - IRR_BYTES, perm, pi)) {
             continue;
         }
+
 
         controlbitsfrompermutation(skp, pi, GFBITS, 1 << GFBITS);
         skp += COND_BYTES;

@@ -109,7 +109,7 @@ static void gen_e(unsigned char *e) {
 
 /* input: public key pk, error vector e */
 /* output: syndrome s */
-static void syndrome(unsigned char *s, const unsigned char *pk, const unsigned char *e) {
+void syndrome(unsigned char *s, const unsigned char *pk, const unsigned char *e) {
     unsigned char b, row[SYS_N / 8];
     const unsigned char *pk_ptr = pk;
 
@@ -146,8 +146,111 @@ static void syndrome(unsigned char *s, const unsigned char *pk, const unsigned c
     }
 }
 
+/*
+ * Construye la matriz generadora G en forma sistemática a partir de la clave pública.
+ *
+ * La clave pública pk contiene la matriz A (de dimensión 
+ *   PK_NROWS x ((SYS_N - PK_NROWS) bits)
+ * empaquetada en bytes (cada fila ocupa PK_ROW_BYTES bytes).
+ *
+ * La matriz generadora G se construye como:
+ *      G = [ A^T | I ]
+ * de dimensión: (SYS_N - PK_NROWS) x SYS_N bits,
+ * es decir, (SYS_N - PK_NROWS) filas, y cada fila se almacena en SYS_N/8 bytes.
+ *
+ * Parámetros:
+ *   G  : salida, matriz generadora, definida como: 
+ *        unsigned char G[SYS_N - PK_NROWS][SYS_N/8]
+ *   pk : entrada, clave pública que contiene la matriz A, de dimensión:
+ *        unsigned char pk[PK_NROWS * PK_ROW_BYTES]
+ */
+
+
+void codeword(unsigned char *xG, const unsigned char *pk, const unsigned char *x) {
+    unsigned char b;
+    int i, j;
+
+    // Initialize output vector to zero (compressed bit vector)
+    for (i = 0; i < SYS_N / 8; i++) {
+        xG[i] = 0;
+    }
+
+    // Loop over each row of G (i.e., each bit of the output)
+    for (i = 0; i < SYS_N; i++) {
+        b = 0;
+
+        if (i < PK_ROW_BYTES) {
+            // Compute the dot product of x with row i of -A^T
+            for (j = 0; j < PK_NROWS; j++) {
+                // Extract bit (i-th bit of row j in A^T == j-th row, i-th column of A)
+                unsigned char abit = (pk[j * PK_ROW_BYTES + i / 8] >> (i % 8)) & 1;
+                unsigned char xbit  = (x[j / 8] >> (j % 8)) & 1;
+                b ^= abit & xbit; // XOR the bit from A^T with the corresponding bit from x
+            }
+        } else {
+            // Identity part: just use the x bit directly
+            int j = i - PK_NCOLS;
+            b = (x[j / 8] >> (j % 8)) & 1;
+        }
+
+        // Pack the result bit into xG
+        xG[i / 8] |= b << (i % 8);
+    }
+}
+
+
+
+
+
+
 void encrypt(unsigned char *s, const unsigned char *pk, unsigned char *e) {
     gen_e(e);
 
     syndrome(s, pk, e);
 }
+
+
+#include <string.h>  // for memset
+#include "params.h"  // for SYS_N, PK_NCOLS
+
+// Performs y = x * G ⊕ w
+// x: input vector (PK_NCOLS bits, i.e., message)
+// G: generator matrix (PK_NCOLS rows × SYS_N cols, each row packed in (SYS_N+7)/8 bytes)
+// w: vector to XOR with result (SYS_N bits)
+// y: output buffer (SYS_N bits)
+void custom_encrypt(
+    unsigned char *y,            // Output: encrypted message (ciphertext)
+    const unsigned char *x,      // Input: message bits (length k = PK_NCOLS)
+    const unsigned char *G,      // Input: generator matrix (k x n)
+    const unsigned char *w       // Input: noise vector (length n)F
+) {
+    int i, j;
+    int G_row_bytes = (SYS_N + 7) / 8;
+
+    // Temporary buffer to store x·G
+    unsigned char xG[(SYS_N + 7) / 8];
+    memset(xG, 0, G_row_bytes);
+
+    // Compute xG = x·G
+    for (i = 0; i < PK_NCOLS; i++) {
+        int byte_index = i / 8;
+        int bit_index = i % 8;
+
+        // If the i-th bit of x is set
+        if ((x[byte_index] >> bit_index) & 1) {
+            const unsigned char *row = &G[i * G_row_bytes];
+
+            // XOR corresponding row of G into xG
+            for (j = 0; j < G_row_bytes; j++) {
+                xG[j] ^= row[j];
+            }
+        }
+    }
+
+    // Compute y = xG ⊕ w
+    for (i = 0; i < G_row_bytes; i++) {
+        y[i] = xG[i] ^ w[i];
+    }
+}
+
+
