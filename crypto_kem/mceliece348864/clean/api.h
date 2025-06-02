@@ -75,4 +75,18 @@ void PQCLEAN_MCELIECE348864_CLEAN_codeword
     const unsigned char *x
 ); 
 
+int PQCLEAN_MCELIECE348864_CLEAN_extract_preimage
+(
+    unsigned char *preimage_out, 
+    const unsigned char *c, 
+    const unsigned char *sk,
+    unsigned char *e
+);
+
+void PQCLEAN_MCELIECE348864_CLEAN_gen_weight
+(
+    unsigned char *e, 
+    int weight
+);
+
 #endif

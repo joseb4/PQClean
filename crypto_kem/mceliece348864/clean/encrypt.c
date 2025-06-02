@@ -42,6 +42,63 @@ static inline unsigned char same_mask(uint16_t x, uint16_t y) {
     return mask & 0xFF;
 }
 
+void gen_weight(unsigned char *e, int weight) {
+    int i, j, eq, count;
+
+    uint16_t nums[weight * 2];
+    unsigned char bytes[weight * 2 * sizeof(uint16_t)];
+
+    uint16_t ind[weight];
+    unsigned char mask;
+    unsigned char val[weight];
+
+    while (1) {
+        randombytes(bytes, sizeof(bytes));
+
+        for (i = 0; i < weight * 2; i++) {
+            nums[i] = load_gf(bytes + i * 2);
+        }
+
+        // moving and counting indices in the correct range
+        count = 0;
+        for (i = 0; i < weight * 2 && count < weight; i++) {
+            if (uint16_is_smaller_declassify(nums[i], SYS_N)) {
+                ind[count++] = nums[i];
+            }
+        }
+
+        if (count < weight) {
+            continue;
+        }
+
+        // check for repetition
+        eq = 0;
+        for (i = 1; i < weight; i++) {
+            for (j = 0; j < i; j++) {
+                if (uint32_is_equal_declassify(ind[i], ind[j])) {
+                    eq = 1;
+                }
+            }
+        }
+
+        if (eq == 0) {
+            break;
+        }
+    }
+
+    for (j = 0; j < weight; j++) {
+        val[j] = 1 << (ind[j] & 7);
+    }
+
+    for (i = 0; i < SYS_N / 8; i++) {
+        e[i] = 0;
+        for (j = 0; j < weight; j++) {
+            mask = same_mask((uint16_t)i, ind[j] >> 3);
+            e[i] |= val[j] & mask;
+        }
+    }
+}
+
 /* output: e, an error vector of weight t */
 static void gen_e(unsigned char *e) {
     int i, j, eq, count;
@@ -216,6 +273,7 @@ void codeword(unsigned char *xG, const unsigned char *pk, const unsigned char *x
 
 void encrypt(unsigned char *s, const unsigned char *pk, unsigned char *e) {
     gen_e(e);
+    gen_weight(e,1);
 
     syndrome(s, pk, e);
 }

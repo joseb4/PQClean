@@ -35,6 +35,13 @@ void print_binary(const uint8_t *buf, size_t len, const char *label) {
 }
 
 int main(void) {
+
+    printf("%d\n",PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_PUBLICKEYBYTES);
+    printf("%d\n",PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_SECRETKEYBYTES);
+    printf("%d\n",PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_CIPHERTEXTBYTES);
+    
+    printf("KEM Example\n");
+    printf("============\n");
     uint8_t pk[PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_PUBLICKEYBYTES];
     uint8_t sk[PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_SECRETKEYBYTES];
     uint8_t ct[PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_CIPHERTEXTBYTES];
@@ -46,6 +53,7 @@ int main(void) {
         fprintf(stderr, "Keypair generation failed\n");
         return 1;
     }
+    /*
     // Encrypt
     if (PQCLEAN_MCELIECE348864_CLEAN_crypto_kem_enc(ct, ss_enc, pk) != 0) { //ss_enc es el hash. No sinteresa el ct
         fprintf(stderr, "Encryption failed\n");
@@ -57,9 +65,9 @@ int main(void) {
         return 1;
     }
 
-
+    
     // Print original shared secret key
-    print_binary(ss_enc, PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_BYTES, "Shared Secret (Enc)");
+    print_binary(ss_enc, PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_BYTES, "\nShared Secret (Enc)");
 
     // Print ciphertext
     print_binary(ct, PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_CIPHERTEXTBYTES, "Ciphertext");
@@ -69,10 +77,10 @@ int main(void) {
 
     // Verify keys match
     if (memcmp(ss_enc, ss_dec, PQCLEAN_MCELIECE348864_CLEAN_CRYPTO_BYTES) == 0) {
-        printf("✅ Shared secrets match: decryption successful.\n\n");
+        printf("✅ Shared secrets match: decryption successful.");
     } else {
-        printf("❌ Shared secrets differ: decryption failed.\n\n");
-    }
+        printf("❌ Shared secrets differ: decryption failed.");
+    }*/
     
     unsigned char y[SYS_N/8];
     unsigned char x[PK_ROW_BYTES]; // PK_NCOLS bits, packed into bytes
@@ -80,78 +88,45 @@ int main(void) {
     unsigned char GG[PK_NCOLS * SYS_N/8];
     unsigned char syn[SYND_BYTES];
     unsigned char xG[SYS_N/8];
+    unsigned char w[SYS_N/8];
+    unsigned char e[SYS_N/8];
 
     unsigned char ww[SYS_N/8] = {0};
     bool used2[SYS_N] = {0};
-    int weight2 = 0;
-    while (weight2 < SYS_T) {
-        int bitpos2 = rand() % SYS_N;
-        if (!used2[bitpos2]) {
-            used2[bitpos2] = true;
-            ww[bitpos2 / 8] |= 1 << (bitpos2 % 8);
-            weight2++;
-        }
-    }
+    printf("\n\nSECRET ENCRYPTION WITH BIOMETRY y = xG + w. DEMONSTRATOR\n");
+    printf("============\n");
 
-    // Generate random message x of correct length
+    // Generate random message x of correct length and calculate corresponding codeword x*G
     for (size_t i = 0; i < PK_ROW_BYTES; i++) {
             x[i] = rand() % 256;
-
     }
-    print_binary(x, PK_ROW_BYTES, "x (random vector)");
+    print_binary(x, PK_ROW_BYTES, "x (random secret to be encrypted)");
     PQCLEAN_MCELIECE348864_CLEAN_codeword(xG, pk, x); 
-    print_binary(xG, SYS_N/8, "Codeword");
-    //PQCLEAN_MCELIECE348864_CLEAN_build_G_matrix(G, pk);
-    //print_binary(pk, SYS_N, "H");
-    //print_binary(G, SYS_N, "G");
-    // Encrypt using custom_encrypt: y = x·G ⊕ ww
-    //PQCLEAN_MCELIECE348864_CLEAN_custom_encrypt(y, x, G, ww);
-    // Dencription: calculate e= yH^T, from e extract, xG. Then ww = xG ⊕ y
+    print_binary(xG, SYS_N/8, "\nCodeword");
     if (PQCLEAN_MCELIECE348864_CLEAN_syndrome(syn, pk,xG) != 0) {
-    fprintf(stderr, "Encryption failed\n");
-    return 1;
+        fprintf(stderr, "Encryption failed\n");
+        return 1;
     }    
-    print_binary(syn, SYND_BYTES, "syndrome of worderod");
-/*
-
-
-    
-    // Decrypt
-    PQCLEAN_MCELIECE348864_CLEAN_decrypt(xG, sk, ct);
-
-    uint8_t ww_prime[SYS_N / 8];
-    for (size_t i = 0; i < SYS_N / 8; i++) {
-        ww_prime[i] = y[i] ^ xG[i];
-    }
-    // Print original shared secret key
-    print_binary(G, PK_NROWS, "G");
-    print_binary(x, PK_NROWS, "x");
-    print_binary(xG, SYS_N/8, "xG");
-    print_binary(ww, SYS_N/8, "Noise");
-
-    // Print ciphertext
-    print_binary(ww_prime, SYS_N/8, "Detected noise ");
-    
-    
-    if (memcmp(ww, ww_prime, SYS_N / 8) == 0) {
-        printf("✅ Success: w == w'\n");
+    // Generate encription biometry as random array of bits
+    int weight = 69;
+    PQCLEAN_MCELIECE348864_CLEAN_gen_weight(w, weight);
+    print_binary(w, SYS_N/8, "\nBiometry error vector w");
+    printf("Hamming weight of w: %d\n\n", hamming_weight(w, SYS_N/8));
+    PQCLEAN_MCELIECE348864_CLEAN_syndrome(syn, pk, w);
+    print_binary(syn, SYND_BYTES, "Syndrome of error vector w");
+    printf("Hammight weight of the syndrome: %d\n\n", hamming_weight(syn, SYND_BYTES));
+    unsigned char decrypted_w[SYS_N/8];
+    PQCLEAN_MCELIECE348864_CLEAN_extract_preimage(decrypted_w, syn, sk, e);
+    print_binary(e, SYS_N/8, "\n\nDecrypted error vector e");
+    print_binary(decrypted_w, SYS_N/8, "\n\nDecrypted error vector w");
+    printf("Hamming weight of decrypted_w: %d\n\n", hamming_weight(decrypted_w, SYS_N/8));
+    if (memcmp(e, w, SYS_N/8) == 0) {
+        printf("\n✅ Decryption successful: decrypted error vector matches original.\n");
     } else {
-        printf("❌ Error: w != w'\n");
+        printf("\n❌ Decryption failed: decrypted error vector does not match original.\n");
     }
 
-    uint8_t diff[SYS_N / 8];
-for (size_t i = 0; i < SYS_N / 8; i++) {
-    diff[i] = ww[i] ^ ww_prime[i];
-}
-
-// Print Hamming weights
-int hw_ww = hamming_weight(ww, SYS_N / 8);
-int hw_ww_prime = hamming_weight(ww_prime, SYS_N / 8);
-int hw_diff = hamming_weight(diff, SYS_N / 8);
-
-printf("Hamming weight of ww:        %d\n", hw_ww);
-printf("Hamming weight of ww_prime:  %d\n", hw_ww_prime);
-printf("Hamming weight of difference: %d\n", hw_diff);
-        */
+    PQCLEAN_MCELIECE348864_CLEAN_syndrome(syn, pk, decrypted_w);
+    print_binary(syn, SYND_BYTES, "Syndrome of decrypted error vector w");
         return 0;
     }

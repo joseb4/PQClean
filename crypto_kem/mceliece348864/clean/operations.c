@@ -28,8 +28,8 @@ int crypto_kem_enc(
     // Calculates the syndrome of e
     encrypt(c, pk, e);
 
-    memcpy(one_ec + 1, e, SYS_N / 8);
-    memcpy(one_ec + 1 + SYS_N / 8, c, SYND_BYTES);
+    memcpy(one_ec + 1, e, SYS_N / 8); // Generates a noise with WT t adn stores it inth eSYS_N / 8 bytes of one_ec
+    memcpy(one_ec + 1 + SYS_N / 8, c, SYND_BYTES); // Stores the cyphertext in the last SYND_BYTES bytes of one_ec
 
     crypto_hash_32b(key, one_ec, sizeof(one_ec));
 
@@ -54,7 +54,7 @@ int crypto_kem_dec(
 
     //
 
-    ret_decrypt = (unsigned char)decrypt(e, sk + 40, c);
+    ret_decrypt = (unsigned char)decrypt(e, sk + 40, c); //Given the cyphertext c, decrypts it using the secret key sk and stores the error vector in e
 
     m = ret_decrypt;
     m -= 1;

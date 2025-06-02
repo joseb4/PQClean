@@ -3,9 +3,9 @@
 
 #include "namespace.h"
 
-#define GFBITS 12 // equivalent to m
-#define SYS_N 3488 // equivalent to n
-#define SYS_T 64    // equivalent to t
+#define GFBITS 13
+#define SYS_N 4608
+#define SYS_T 96
 
 #define COND_BYTES ((1 << (GFBITS-4))*(2*GFBITS - 1))
 #define IRR_BYTES (SYS_T * 2)
