@@ -3,9 +3,18 @@
 */
 
 #include "gf.h"
-
+#include <stddef.h>
 #include "params.h"
+
 #if GFBITS == 13
+static const int RED_POLY_EXP[] = {13, 4, 3, 1, 0}; // x^13 + x^4 + x^3 + x + 1
+#elif GFBITS == 12
+static const int RED_POLY_EXP[] = {12, 3, 0}; // x^12 + x^3 + 1
+#else
+#error "Unsupported GFBITS value"
+#endif
+#define RED_POLY_TERMS (sizeof(RED_POLY_EXP)/sizeof(RED_POLY_EXP[0]))
+
 gf gf_iszero(gf a) {
     uint32_t t = a;
 
@@ -18,7 +27,80 @@ gf gf_iszero(gf a) {
 gf gf_add(gf in0, gf in1) {
     return in0 ^ in1;
 }
+/*
+static void reducer(uint64_t tmp, const int blocksize){
+    int i;
+    size_t j;
+    uint64_t t, mask;
+    int bits_to_reduce = 64-GFBITS;//, blocksize = 3;
+    int n_blocks = bits_to_reduce / blocksize;
+    int remain = bits_to_reduce - blocksize*n_blocks;
 
+
+    // Reduce the very last bits
+    mask = ((1ULL<<remain)-1)<<(GFBITS+blocksize*n_blocks); // from the 16 on: 1111 1111 1111 1111 1111 1111 1111 1000 0000 0000 0000
+    t = tmp & mask; 
+    for (j = 0; j < RED_POLY_TERMS; j++)
+        tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+    for (i = n_blocks-1; i>=0; --i){
+        mask = ((1 << blocksize)-1)<< (GFBITS+blocksize*i); // from the 13 to 16
+        t = tmp & mask; 
+        for (j = 0; j < RED_POLY_TERMS; j++)
+            tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+    }
+
+}
+*/
+gf gf_mul(gf in0, gf in1) {
+    int i;
+    
+    size_t j;
+    uint64_t mask;
+    uint64_t tmp;
+    uint64_t t0;
+    uint64_t t1;
+    uint64_t t;
+
+    t0 = in0;
+    t1 = in1;
+
+    tmp = t0 * (t1 & 1);
+
+    for (i = 1; i < GFBITS; i++) {
+        tmp ^= (t0 * (t1 & ((uint64_t)1 << i))); // Multiply coeff by coeff
+    }
+
+    // 
+    
+    int bits_to_reduce = 64-GFBITS, blocksize = 4;
+    int n_blocks = bits_to_reduce / blocksize;
+    int remain = bits_to_reduce - blocksize*n_blocks;
+    int shift;
+
+
+    // Reduce the very last bits
+    if (remain != 0){
+    mask = ((1ULL<<remain)-1)<<(GFBITS+blocksize*n_blocks); // from the 16 on: 1111 1111 1111 1111 1111 1111 1111 1000 0000 0000 0000
+    t = tmp & mask; 
+    for (j = 0; j < RED_POLY_TERMS; j++)
+        tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));}
+    for (i = n_blocks-2; i>=0; --i){
+        shift = GFBITS + blocksize * i;
+        if (shift< bits_to_reduce){
+        mask = ((1 << blocksize)-1)<< (GFBITS+blocksize*i); // from the 13 to 16
+        t = tmp & mask; 
+        for (j = 0; j < RED_POLY_TERMS; j++)
+            tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+        }
+    }
+   
+    //reducer(tmp, 3);
+    return tmp & GFMASK;
+}
+
+
+#if GFBITS == 13
+/*
 gf gf_mul(gf in0, gf in1) {
     int i;
 
@@ -45,7 +127,7 @@ gf gf_mul(gf in0, gf in1) {
     tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
 
     return tmp & GFMASK;
-}
+}*/
 
 /* input: field element in */
 /* return: (in^2)^2 */
@@ -209,19 +291,7 @@ void GF_mul(gf *out, gf *in0, gf *in1) {
     }
 }
 #elif GFBITS == 12
-gf gf_iszero(gf a) {
-    uint32_t t = a;
-
-    t -= 1;
-    t >>= 19;
-
-    return (gf) t;
-}
-
-gf gf_add(gf in0, gf in1) {
-    return in0 ^ in1;
-}
-
+/*
 gf gf_mul(gf in0, gf in1) {
     int i;
 
@@ -248,7 +318,7 @@ gf gf_mul(gf in0, gf in1) {
     tmp ^= t >> 12;
 
     return tmp & ((1 << GFBITS) - 1);
-}
+}*/
 
 /* input: field element in */
 /* return: in^2 */
