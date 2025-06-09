@@ -194,7 +194,24 @@ static inline gf gf_sq(gf in) {
 /* input: field element den, num */
 /* return: (num/den) */
 gf gf_frac(gf den, gf num) {
-    #if GFBITS == 13
+        int i;
+    gf out;
+    gf tmp_11;
+
+    tmp_11 = gf_sqmul(den, den); // den^3 (0b11)
+    out = tmp_11;
+
+    // Number of pairs of bits in GFBITS-1 (excluding the first pair already in out)
+    int pairs = (GFBITS - 1) / 2 - 1;
+    for (i = 0; i < pairs; i++) {
+        out = gf_sq2mul(out, tmp_11);
+    }
+
+    // If GFBITS-1 is odd, handle the last bit
+    if (((GFBITS - 1) % 2) == 1) {
+        out = gf_sqmul(out, den);
+    }
+    /*
     gf tmp_11;
     gf tmp_1111;
     gf out;
@@ -205,33 +222,8 @@ gf gf_frac(gf den, gf num) {
     out = gf_sq2mul(out, tmp_1111); // ^11111111
     out = gf_sq2(out);
     out = gf_sq2mul(out, tmp_1111); // ^111111111111
-    #elif GFBITS == 12
-    gf tmp_11;
-    gf tmp_1111;
-
-    gf out = den;
-
-    out = gf_sq(out);
-    tmp_11 = gf_mul(out, den); // 11
-
-    out = gf_sq(tmp_11);
-    out = gf_sq(out);
-    tmp_1111 = gf_mul(out, tmp_11); // 1111
-
-    out = gf_sq(tmp_1111);
-    out = gf_sq(out);
-    out = gf_sq(out);
-    out = gf_sq(out);
-    out = gf_mul(out, tmp_1111); // 11111111
-
-    out = gf_sq(out);
-    out = gf_sq(out);
-    out = gf_mul(out, tmp_11); // 1111111111
-
-    out = gf_sq(out);
-    out = gf_mul(out, den);
-    #endif
-    return gf_sqmul(out, num); // ^1111111111110 = ^-1
+    */
+    return gf_sqmul(out, num);
 }
 
 gf gf_inv(gf den) {
