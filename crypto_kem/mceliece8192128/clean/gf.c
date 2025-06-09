@@ -168,6 +168,25 @@ static inline gf gf_sq2mul(gf in, gf m) {
     return x & GFMASK;
 }
 
+/* input: field element in */
+/* return: in^2 */
+static inline gf gf_sq(gf in) {
+    const uint64_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
+
+    uint64_t x = in;
+    //uint32_t t;
+
+    x = (x | (x << 8)) & B[3];
+    x = (x | (x << 4)) & B[2];
+    x = (x | (x << 2)) & B[1];
+    x = (x | (x << 1)) & B[0];
+
+
+    reducer(&x);
+
+    return x & ((1 << GFBITS) - 1);
+}
+
 #if GFBITS == 13
 
 
@@ -253,29 +272,7 @@ gf gf_mul(gf in0, gf in1) {
     return tmp & ((1 << GFBITS) - 1);
 }*/
 
-/* input: field element in */
-/* return: in^2 */
-static inline gf gf_sq(gf in) {
-    const uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
 
-    uint32_t x = in;
-    uint32_t t;
-
-    x = (x | (x << 8)) & B[3];
-    x = (x | (x << 4)) & B[2];
-    x = (x | (x << 2)) & B[1];
-    x = (x | (x << 1)) & B[0];
-
-    t = x & 0x7FC000;
-    x ^= t >> 9;
-    x ^= t >> 12;
-
-    t = x & 0x3000;
-    x ^= t >> 9;
-    x ^= t >> 12;
-
-    return x & ((1 << GFBITS) - 1);
-}
 
 gf gf_inv(gf in) {
     gf tmp_11;
