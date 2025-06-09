@@ -4,12 +4,13 @@
 
 #include "gf.h"
 #include <stddef.h>
+#include <stdio.h>
 #include "params.h"
 
 #if GFBITS == 13
-static const int RED_POLY_EXP[] = {13, 4, 3, 1, 0}; // x^13 + x^4 + x^3 + x + 1
+static const int RED_POLY_EXP[] = {4, 3, 1, 0}; // x^13 + x^4 + x^3 + x + 1
 #elif GFBITS == 12
-static const int RED_POLY_EXP[] = {12, 3, 0}; // x^12 + x^3 + 1
+static const int RED_POLY_EXP[] = {3, 0}; // x^12 + x^3 + 1
 #else
 #error "Unsupported GFBITS value"
 #endif
@@ -27,39 +28,51 @@ gf gf_iszero(gf a) {
 gf gf_add(gf in0, gf in1) {
     return in0 ^ in1;
 }
-/*
-static void reducer(uint64_t tmp, const int blocksize){
+
+static void reducer(uint64_t *tmp){
+    /* The | separates the degree of the polynomial
+    0000 0000 0000 000|0 0000 0000 0000
+    The final product must be below that line
+    Dislapcements are made with the degree of the monomials forming the polynomial, f.i.,
+    for f(x) =  x^13+x^4+x^3+x^2+1
+    t = tmp & 0x1FF0000;
+    tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
+    t = tmp & 0x000E000;
+    tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
+    since the smallest displacement is 9, the blocksize we pick muset be 9, 1FF or 7FC
+    */
     int i;
     size_t j;
     uint64_t t, mask;
-    int bits_to_reduce = 64-GFBITS;//, blocksize = 3;
+    int bits_to_reduce = 64-GFBITS, blocksize = GFBITS-RED_POLY_EXP[0];
     int n_blocks = bits_to_reduce / blocksize;
     int remain = bits_to_reduce - blocksize*n_blocks;
 
 
-    // Reduce the very last bits
+    // Reduce the remaining bits
     mask = ((1ULL<<remain)-1)<<(GFBITS+blocksize*n_blocks); // from the 16 on: 1111 1111 1111 1111 1111 1111 1111 1000 0000 0000 0000
-    t = tmp & mask; 
+    t = *tmp & mask; 
     for (j = 0; j < RED_POLY_TERMS; j++)
-        tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+        *tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+    // Reduce the rest of the blocks
     for (i = n_blocks-1; i>=0; --i){
-        mask = ((1 << blocksize)-1)<< (GFBITS+blocksize*i); // from the 13 to 16
-        t = tmp & mask; 
+        mask = ((1ULL << blocksize)-1)<< (GFBITS+blocksize*i); // from the 13 to 16
+        t = *tmp & mask; 
         for (j = 0; j < RED_POLY_TERMS; j++)
-            tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+            *tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
     }
 
 }
-*/
+
 gf gf_mul(gf in0, gf in1) {
     int i;
     
-    size_t j;
-    uint64_t mask;
+    //size_t j;
+    //uint64_t mask;
     uint64_t tmp;
     uint64_t t0;
     uint64_t t1;
-    uint64_t t;
+    //uint64_t t;
 
     t0 = in0;
     t1 = in1;
@@ -70,94 +83,32 @@ gf gf_mul(gf in0, gf in1) {
         tmp ^= (t0 * (t1 & ((uint64_t)1 << i))); // Multiply coeff by coeff
     }
 
-    // 
-    
-    int bits_to_reduce = 64-GFBITS, blocksize = 4;
-    int n_blocks = bits_to_reduce / blocksize;
-    int remain = bits_to_reduce - blocksize*n_blocks;
-    int shift;
 
 
-    // Reduce the very last bits
-    if (remain != 0){
-    mask = ((1ULL<<remain)-1)<<(GFBITS+blocksize*n_blocks); // from the 16 on: 1111 1111 1111 1111 1111 1111 1111 1000 0000 0000 0000
-    t = tmp & mask; 
-    for (j = 0; j < RED_POLY_TERMS; j++)
-        tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));}
-    for (i = n_blocks-2; i>=0; --i){
-        shift = GFBITS + blocksize * i;
-        if (shift< bits_to_reduce){
-        mask = ((1 << blocksize)-1)<< (GFBITS+blocksize*i); // from the 13 to 16
-        t = tmp & mask; 
-        for (j = 0; j < RED_POLY_TERMS; j++)
-            tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
-        }
-    }
-   
-    //reducer(tmp, 3);
+  
+    reducer(&tmp);
     return tmp & GFMASK;
 }
-
-
-#if GFBITS == 13
-/*
-gf gf_mul(gf in0, gf in1) {
-    int i;
-
-    uint64_t tmp;
-    uint64_t t0;
-    uint64_t t1;
-    uint64_t t;
-
-    t0 = in0;
-    t1 = in1;
-
-    tmp = t0 * (t1 & 1);
-
-    for (i = 1; i < GFBITS; i++) {
-        tmp ^= (t0 * (t1 & ((uint64_t)1 << i)));
-    }
-
-    //
-
-    t = tmp & 0x1FF0000;
-    tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
-
-    t = tmp & 0x000E000;
-    tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
-
-    return tmp & GFMASK;
-}*/
 
 /* input: field element in */
 /* return: (in^2)^2 */
 static inline gf gf_sq2(gf in) {
-    int i;
+
 
     const uint64_t B[] = {0x1111111111111111,
                           0x0303030303030303,
                           0x000F000F000F000F,
                           0x000000FF000000FF
                          };
-
-    const uint64_t M[] = {0x0001FF0000000000,
-                          0x000000FF80000000,
-                          0x000000007FC00000,
-                          0x00000000003FE000
-                         };
-
     uint64_t x = in;
-    uint64_t t;
 
+    // Double squaring
     x = (x | (x << 24)) & B[3];
     x = (x | (x << 12)) & B[2];
     x = (x | (x << 6)) & B[1];
     x = (x | (x << 3)) & B[0];
 
-    for (i = 0; i < 4; i++) {
-        t = x & M[i];
-        x ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
-    }
+    reducer(&x);
 
     return x & GFMASK;
 }
@@ -165,23 +116,15 @@ static inline gf gf_sq2(gf in) {
 /* input: field element in, m */
 /* return: (in^2)*m */
 static inline gf gf_sqmul(gf in, gf m) {
-    int i;
 
     uint64_t x;
     uint64_t t0;
     uint64_t t1;
-    uint64_t t;
-
-    const uint64_t M[] = {0x0000001FF0000000,
-                          0x000000000FF80000,
-                          0x000000000007E000
-                         };
 
     t0 = in;
     t1 = m;
 
     x = (t1 << 6) * (t0 & (1 << 6));
-
     t0 ^= (t0 << 7);
 
     x ^= (t1 * (t0 & (0x04001)));
@@ -191,31 +134,21 @@ static inline gf gf_sqmul(gf in, gf m) {
     x ^= (t1 * (t0 & (0x40010))) << 4;
     x ^= (t1 * (t0 & (0x80020))) << 5;
 
-    for (i = 0; i < 3; i++) {
-        t = x & M[i];
-        x ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
-    }
+    reducer(&x);
 
     return x & GFMASK;
 }
 
+
 /* input: field element in, m */
 /* return: ((in^2)^2)*m */
 static inline gf gf_sq2mul(gf in, gf m) {
-    int i;
+
 
     uint64_t x;
     uint64_t t0;
     uint64_t t1;
-    uint64_t t;
 
-    const uint64_t M[] = {0x1FF0000000000000,
-                          0x000FF80000000000,
-                          0x000007FC00000000,
-                          0x00000003FE000000,
-                          0x0000000001FE0000,
-                          0x000000000001E000
-                         };
 
     t0 = in;
     t1 = m;
@@ -231,13 +164,13 @@ static inline gf gf_sq2mul(gf in, gf m) {
     x ^= (t1 * (t0 & (0x100000010))) << 12;
     x ^= (t1 * (t0 & (0x200000020))) << 15;
 
-    for (i = 0; i < 6; i++) {
-        t = x & M[i];
-        x ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
-    }
-
+    reducer(&x);
     return x & GFMASK;
 }
+
+#if GFBITS == 13
+
+
 
 /* input: field element den, num */
 /* return: (num/den) */
