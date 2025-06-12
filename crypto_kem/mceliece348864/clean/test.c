@@ -108,7 +108,7 @@ int main(void) {
         return 1;
     }    
     // Generate encription biometry as random array of bits
-    int weight = 69;
+    int weight = 63;
     PQCLEAN_MCELIECE348864_CLEAN_gen_weight(w, weight);
     print_binary(w, SYS_N/8, "\nBiometry error vector w");
     printf("Hamming weight of w: %d\n\n", hamming_weight(w, SYS_N/8));

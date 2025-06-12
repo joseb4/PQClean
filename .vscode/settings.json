@@ -1,5 +1,11 @@
 {
     "files.associations": {
+<<<<<<< HEAD
         "namespace.h": "c"
+=======
+        "compare": "c",
+        "namespace.h": "c",
+        "stddef.h": "c"
+>>>>>>> master
     }
 }

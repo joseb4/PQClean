@@ -11,7 +11,7 @@
 
 #include "gf.h"
 
-gf eval(gf *f, gf a, int multiplicity);
+gf eval(gf *f, gf a, const int degree);
 void root(gf *out, gf *f, gf *L);
 
 #endif

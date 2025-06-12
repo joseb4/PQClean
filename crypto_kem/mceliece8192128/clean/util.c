@@ -6,6 +6,10 @@
 
 #include "params.h"
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
 void store_gf(unsigned char *dest, gf a) {
     dest[0] = a & 0xFF;
     dest[1] = a >> 8;
@@ -56,11 +60,27 @@ uint64_t load8(const unsigned char *in) {
     return ret;
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
 gf bitrev(gf a) {
     a = ((a & 0x00FF) << 8) | ((a & 0xFF00) >> 8);
     a = ((a & 0x0F0F) << 4) | ((a & 0xF0F0) >> 4);
     a = ((a & 0x3333) << 2) | ((a & 0xCCCC) >> 2);
     a = ((a & 0x5555) << 1) | ((a & 0xAAAA) >> 1);
 
+<<<<<<< HEAD
     return a >> 3;
 }
+=======
+    #if GFBITS == 13
+    return a >> 3;
+    #elif GFBITS == 12
+    return a >> 4;
+    #endif
+}
+
+
+
+>>>>>>> master

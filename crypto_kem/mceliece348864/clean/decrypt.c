@@ -5,6 +5,7 @@
 #include "decrypt.h"
 #include <stdio.h>
 #include <string.h>
+
 #include "benes.h"
 #include "bm.h"
 #include "gf.h"
@@ -34,8 +35,7 @@ int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *c) {
 
     gf t;
 
-    // C = He
-    // extend v = (C,0,...,0) 
+    //
 
     for (i = 0; i < SYND_BYTES; i++) {
         r[i] = c[i];
@@ -43,25 +43,21 @@ int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *c) {
     for (i = SYND_BYTES; i < SYS_N / 8; i++) {
         r[i] = 0;
     }
-    // Find the unique c\in F^n/2 s.t,. 
-    //  1) Hc = 0
-    //  2) wt(c-v) <= SYS_T
-    //  3) e = v + c
 
-    // 1) Load the Goppa polynomial and support
     for (i = 0; i < SYS_T; i++) {
         g[i] = load_gf(sk);
         sk += 2;
     }
     g[ SYS_T ] = 1;
-    // Load the alpha
+
     support_gen(L, sk);
-    // Calcualte syndrome of r, s = Syn(r) = 1/z + 1/(1+z) mod g(z). This will be an element in GF(2)[z]/g(z)
+
     synd(s, g, L, r);
-    // Calculate the error locator polynomial with Berlecamp
+
     bm(locator, s);
-    // The roots alpha_i indicate the error
-    root(images, locator, L);// When deg\neq SYS_T, there is one extra root because the polynomial looks like x^m*(poly)
+
+    root(images, locator, L);
+
     //
 
     for (i = 0; i < SYS_N / 8; i++) {
@@ -69,33 +65,20 @@ int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *c) {
     }
 
     for (i = 0; i < SYS_N; i++) {
-        //printf("i = %d, image = %d\n", i, images[i]);
         t = gf_iszero(images[i]) & 1;
-        if (gf_iszero(images[i]) & 1)
-            printf("Error: image[%d] is zero\n", i);
 
         e[ i / 8 ] |= t << (i % 8);
-        //e[ (SYS_N -i) / 8 ] |= t << (i % 8);
-        
         w += t;
 
     }
-    //for (i = 0; i < 500; i++) 
-        //printf("i = %d, image = %d\n", i, images[i]);
-    printf("\n%d errors located\n", w);
 
     synd(s_cmp, g, L, e);
 
-    // This focres the hammight // weight of the error vector to be SYS_T
+    //
 
-    if (w > SYS_T) {
-        // If the weight is greater than SYS_T, we return an error
-        printf("Too many errors located");
-        return 1;
-    }
-    check = (uint16_t)0;
-    //check ^= SYS_T;
-    // Verify the syndrome
+    check = (uint16_t)w;
+    check ^= SYS_T;
+
     for (i = 0; i < SYS_T * 2; i++) {
         check |= s[i] ^ s_cmp[i];
     }

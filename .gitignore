@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 bin/
 
 *.o
@@ -11,3 +12,7 @@ bin/
 
 __pycache__
 testcases/
+=======
+*.o
+
+>>>>>>> master

@@ -11,7 +11,11 @@
 
 #include "gf.h"
 
+<<<<<<< HEAD
 gf eval(gf *f, gf a);
+=======
+gf eval(gf *f, gf a, const int degree);
+>>>>>>> master
 void root(gf *out, gf *f, gf *L);
 
 #endif
