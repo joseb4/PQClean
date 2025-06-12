@@ -94,38 +94,29 @@ _The checking of items on this list is still being developed. Checked items shou
 * Minimalist Makefiles
 * No stringification macros
 * Output-parameter pointers in functions are on the left
-* All exported symbols are namespaced in place
-* Integer types are of fixed size where relevant, using `stdint.h` types (optional, recommended)
-* Integers used for indexing memory are of size `size_t` (optional, recommended)
-* Variable declarations at the beginning (except in `for (size_t i=...`) (optional, recommended)
+* const arguments are labelled as const
+* All exported symbols are namespaced inplace
+* All integer types are of fixed size, using `stdint.h` types (including `uint8_t` instead of `"unsigned char`)
+* Integers used for indexing are of size `size_t`
+* variable declarations at the beginning (except in `for (size_t i=...`)
 
-## Schemes currently in PQClean
 
-For the following schemes we have implementations of one or more of their parameter sets.
-For all of these schemes we have clean C code, but for some we also have optimised code.
+## Clean C implementations currently in PQClean
 
-### Key Encapsulation Mechanisms
+Currently, the continuous-integration and testing environment of PQClean is still work in progress 
+and as a consequence PQClean does not yet have any implementations.
 
-**Finalists:**
-* Kyber
+<!--
+ Currently, PQClean includes clean C implementations of the following KEMs:
 
-**Alternate candidates:**
-* HQC
-* Classic McEliece
+ * [Kyber-512](https://pq-crystals.org/kyber/)
+ * [Kyber-768](https://pq-crystals.org/kyber/)
+ * [Kyber-1024](https://pq-crystals.org/kyber/)
 
-### Signature schemes
+ Currently, PQClean includes clean C implementations of the following signature schemes:
 
-**To-be standards:**
-* Dilithium
-* Falcon
-* SPHINCS+
-
-**Alternate candidates:**
-* No participants yet.
-
-Implementations previously available in PQClean and dropped in Round 3 of the NIST standardization effort are available in the [`round2` tag](https://github.com/PQClean/PQClean/releases/tag/round2). 
-
-Implementations previously available in PQClean and dropped in Round 4 of the NIST standardization effort are available in the [`round3` tag](https://github.com/PQClean/PQClean/releases/tag/round3). 
+ * [Dilithium-III](https://pq-crystals.org/dilithium/)
+-->
 
 ## API used by PQClean
 
