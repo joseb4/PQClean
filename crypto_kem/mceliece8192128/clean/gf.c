@@ -8,13 +8,16 @@
 #include "params.h"
 
 #if GFBITS == 13
-static const int RED_POLY_EXP[] = {4, 3, 1, 0}; // x^13 + x^4 + x^3 + x + 1
+static const int f_z_coeffs[] = {4, 3, 1, 0}; // x^13 + x^4 + x^3 + x + 1
+//static const int F_y_coeffs[] = {7, 4, 1, 0}; // y^128 + y^7 + y^2 + y + 1. Monic irreducible polynomial over GF(2^(mt))
 #elif GFBITS == 12
-static const int RED_POLY_EXP[] = {3, 0}; // x^12 + x^3 + 1
+static const int f_z_coeffs[] = {3, 0}; // x^12 + x^3 + 1
+//static const int F_y_coeffs[] = {3, 1, 0}; // y^64 + y^3 + y + z.
 #else
 #error "Unsupported GFBITS value"
 #endif
-#define RED_POLY_TERMS (sizeof(RED_POLY_EXP)/sizeof(RED_POLY_EXP[0]))
+#define f_terms (sizeof(f_z_coeffs)/sizeof(f_z_coeffs[0]))
+//#define F_terms (sizeof(F_y_coeffs)/sizeof(F_y_coeffs[0]))
 
 gf gf_iszero(gf a) {
     uint32_t t = a;
@@ -44,7 +47,7 @@ static void reducer(uint64_t *tmp){
     int i;
     size_t j;
     uint64_t t, mask;
-    int bits_to_reduce = 64-GFBITS, blocksize = GFBITS-RED_POLY_EXP[0];
+    int bits_to_reduce = 64-GFBITS, blocksize = GFBITS-f_z_coeffs[0];
     int n_blocks = bits_to_reduce / blocksize;
     int remain = bits_to_reduce - blocksize*n_blocks;
 
@@ -52,14 +55,14 @@ static void reducer(uint64_t *tmp){
     // Reduce the remaining bits
     mask = ((1ULL<<remain)-1)<<(GFBITS+blocksize*n_blocks); // from the 16 on: 1111 1111 1111 1111 1111 1111 1111 1000 0000 0000 0000
     t = *tmp & mask; 
-    for (j = 0; j < RED_POLY_TERMS; j++)
-        *tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+    for (j = 0; j < f_terms; j++)
+        *tmp ^= (t >> (GFBITS-f_z_coeffs[j]));
     // Reduce the rest of the blocks
     for (i = n_blocks-1; i>=0; --i){
         mask = ((1ULL << blocksize)-1)<< (GFBITS+blocksize*i); // from the 13 to 16
         t = *tmp & mask; 
-        for (j = 0; j < RED_POLY_TERMS; j++)
-            *tmp ^= (t >> (GFBITS-RED_POLY_EXP[j]));
+        for (j = 0; j < f_terms; j++)
+            *tmp ^= (t >> (GFBITS-f_z_coeffs[j]));
     }
 
 }
@@ -240,16 +243,17 @@ void GF_mul(gf *out, gf *in0, gf *in1) {
     for (i = 0; i < SYS_T * 2 - 1; i++) {
         prod[i] = 0;
     }
-
+    // Convolutional poly mulitplication
     for (i = 0; i < SYS_T; i++) {
         for (j = 0; j < SYS_T; j++) {
             prod[i + j] ^= gf_mul(in0[i], in1[j]);
         }
     }
 
-    //
+    // Modular reduction
 
     for (i = (SYS_T - 1) * 2; i >= SYS_T; i--) {
+        // F(y) se usa para representar GF(2^(mt)) We need to modify this for different degrees
         #if GFBITS == 13
         prod[i - SYS_T + 7] ^= prod[i];
         prod[i - SYS_T + 2] ^= prod[i];
@@ -261,6 +265,7 @@ void GF_mul(gf *out, gf *in0, gf *in1) {
         prod[i - SYS_T + 0] ^= gf_mul(prod[i], (gf) 2);
         #endif
     }
+    
 
     for (i = 0; i < SYS_T; i++) {
         out[i] = prod[i];
