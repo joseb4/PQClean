@@ -12,14 +12,6 @@
 #include <string.h>
 
 #include "crypto_declassify.h"
-<<<<<<< HEAD
-#include "crypto_uint32.h"
-#include "gf.h"
-
-/* include last because of conflict with unistd.h encrypt definition */
-#include "encrypt.h"
-
-=======
 #include "crypto_uint16.h"
 #include "crypto_uint32.h"
 #include "gf.h"
@@ -33,7 +25,6 @@ static inline crypto_uint16 uint16_is_smaller_declassify(uint16_t t, uint16_t u)
     return mask;
 }
 
->>>>>>> master
 static inline crypto_uint32 uint32_is_equal_declassify(uint32_t t, uint32_t u) {
     crypto_uint32 mask = crypto_uint32_equal_mask(t, u);
     crypto_declassify(&mask, sizeof mask);
@@ -53,49 +44,18 @@ static inline unsigned char same_mask(uint16_t x, uint16_t y) {
 
 /* output: e, an error vector of weight t */
 static void gen_e(unsigned char *e) {
-<<<<<<< HEAD
     int i, j, eq;
 
     uint16_t ind[ SYS_T ];
     unsigned char bytes[ sizeof(ind) ];
-=======
-    int i, j, eq, count;
-
-    union {
-        uint16_t nums[ SYS_T * 2 ];
-        unsigned char bytes[ SYS_T * 2 * sizeof(uint16_t) ];
-    } buf;
-
-    uint16_t ind[ SYS_T ];
->>>>>>> master
     unsigned char mask;
     unsigned char val[ SYS_T ];
 
     while (1) {
-<<<<<<< HEAD
         randombytes(bytes, sizeof(bytes));
 
         for (i = 0; i < SYS_T; i++) {
             ind[i] = load_gf(bytes + i * 2);
-=======
-        randombytes(buf.bytes, sizeof(buf));
-
-        for (i = 0; i < SYS_T * 2; i++) {
-            buf.nums[i] = load_gf(buf.bytes + i * 2);
-        }
-
-        // moving and counting indices in the correct range
-
-        count = 0;
-        for (i = 0; i < SYS_T * 2 && count < SYS_T; i++) {
-            if (uint16_is_smaller_declassify(buf.nums[i], SYS_N)) {
-                ind[ count++ ] = buf.nums[i];
-            }
-        }
-
-        if (count < SYS_T) {
-            continue;
->>>>>>> master
         }
 
         // check for repetition
@@ -130,11 +90,6 @@ static void gen_e(unsigned char *e) {
     }
 }
 
-<<<<<<< HEAD
-/* input: public key pk, error vector e */
-/* output: syndrome s */
-static void syndrome(unsigned char *s, const unsigned char *pk, const unsigned char *e) {
-=======
 void gen_weight(unsigned char *e, int weight) {
     int i, j, eq, count;
 
@@ -238,7 +193,6 @@ void codeword(unsigned char *xG, const unsigned char *pk, const unsigned char *x
 /* input: public key pk, error vector e */
 /* output: syndrome s */
 void syndrome(unsigned char *s, const unsigned char *pk, const unsigned char *e) {
->>>>>>> master
     unsigned char b, row[SYS_N / 8];
     const unsigned char *pk_ptr = pk;
 

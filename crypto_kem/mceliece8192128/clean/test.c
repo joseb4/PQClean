@@ -101,10 +101,7 @@ int main(void) {
     print_binary(x, PK_ROW_BYTES, "x (random secret to be encrypted)");
     PQCLEAN_MCELIECE8192128_CLEAN_codeword(xG, pk, x); 
     print_binary(xG, SYS_N/8, "\nCodeword");
-    if (PQCLEAN_MCELIECE8192128_CLEAN_syndrome(syn, pk,xG) != 0) {
-        fprintf(stderr, "Encryption failed\n");
-        return 1;
-    }    
+    PQCLEAN_MCELIECE8192128_CLEAN_syndrome(syn, pk,xG);
     // Generate encription biometry as random array of bits
     int weight = 63;
     PQCLEAN_MCELIECE8192128_CLEAN_gen_weight(w, weight);

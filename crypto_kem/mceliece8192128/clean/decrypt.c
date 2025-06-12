@@ -4,11 +4,8 @@
 
 #include "decrypt.h"
 #include <stdio.h>
-<<<<<<< HEAD
-=======
 #include <stdlib.h>
 #include <string.h>
->>>>>>> master
 
 #include "benes.h"
 #include "bm.h"
@@ -23,11 +20,6 @@
 /*         c, ciphertext */
 /* output: e, error vector */
 /* return: 0 for success; 1 for failure */
-<<<<<<< HEAD
-=======
-
-
->>>>>>> master
 int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *c) {
     int i, w = 0;
     uint16_t check;
@@ -97,8 +89,6 @@ int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *c) {
 
     return check ^ 1;
 }
-<<<<<<< HEAD
-=======
 
 int extract_preimage(
     unsigned char *pre,
@@ -138,4 +128,3 @@ int extract_preimage(
     return 0;
 }
 
->>>>>>> master

@@ -22,11 +22,7 @@ void synd(gf *out, gf *f, gf *L, const unsigned char *r) {
     for (i = 0; i < SYS_N; i++) {
         c = (r[i / 8] >> (i % 8)) & 1;
 
-<<<<<<< HEAD
-        e = eval(f, L[i]);
-=======
         e = eval(f, L[i], 0);
->>>>>>> master
         e_inv = gf_inv(gf_mul(e, e));
 
         for (j = 0; j < 2 * SYS_T; j++) {

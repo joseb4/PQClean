@@ -26,5 +26,30 @@ int PQCLEAN_MCELIECE8192128_CLEAN_crypto_kem_keypair
     uint8_t *pk,
     uint8_t *sk
 );
+int PQCLEAN_MCELIECE8192128_CLEAN_extract_preimage(
+    unsigned char *preimage_out, 
+    const unsigned char *c, 
+    const unsigned char *sk, 
+    unsigned char *e
+);
+void PQCLEAN_MCELIECE8192128_CLEAN_encrypt(
+    unsigned char *s, 
+    const unsigned char *pk, 
+    unsigned char *e
+);
+void PQCLEAN_MCELIECE8192128_CLEAN_syndrome(
+    unsigned char *s, 
+    const unsigned char *pk, 
+    const unsigned char *e
+);
+void PQCLEAN_MCELIECE8192128_CLEAN_codeword(
+    unsigned char *xG, 
+    const unsigned char *pk, 
+    const unsigned char *x
+);
+void PQCLEAN_MCELIECE8192128_CLEAN_gen_weight(
+    unsigned char *e, 
+    int weight
+);
 
 #endif
