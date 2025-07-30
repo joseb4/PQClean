@@ -10,6 +10,7 @@
 #include "params.h"
 #include "transpose.h"
 
+const int blocksize = (1 << (GFBITS - 4)) ;
 #if GFBITS == 13
 /* middle layers of the benes network */
 static void layer_in(uint64_t data[2][64], uint64_t *bits, int lgs) {
@@ -72,8 +73,8 @@ void apply_benes(unsigned char *r, const unsigned char *bits, int rev) {
     //
 
     if (rev) {
-        bits_ptr = bits + 12288;
-        inc = -1024;
+        bits_ptr = bits + (2 * GFBITS - 1) * blocksize - blocksize; // We displace one blocksize leftwise to read that block
+        inc = - 2*blocksize;
     } else     {
         bits_ptr = bits;
         inc = 0;
@@ -152,7 +153,13 @@ void apply_benes(unsigned char *r, const unsigned char *bits, int rev) {
 /* output: support s */
 
 #elif GFBITS == 12
-/* one layer of the benes network */
+/* one layer of the benes network
+INPUT: 
+    - data, sequence of bits to be permuted
+    - bits, condition bits of the Benes network
+    - the iteration number, log2 of the size
+*/
+
 static void layer(uint64_t *data, uint64_t *bits, int lgs) {
     int i, j, s;
 
@@ -191,11 +198,11 @@ void apply_benes(unsigned char *r, const unsigned char *bits, int rev) {
     }
 
     if (rev == 0) {
-        inc = 256;
+        inc = 0;
         cond_ptr = bits;
     } else {
-        inc = -256;
-        cond_ptr = bits + (2 * GFBITS - 2) * 256;
+        inc = -2*blocksize;
+        cond_ptr = bits + (2 * GFBITS - 1) * blocksize - blocksize;
     }
 
     //
@@ -204,7 +211,8 @@ void apply_benes(unsigned char *r, const unsigned char *bits, int rev) {
 
     for (low = 0; low <= 5; low++) {
         for (i = 0; i < 64; i++) {
-            cond[i] = load4(cond_ptr + i * 4);
+            cond[i] = load4(cond_ptr );
+            cond_ptr += 4;
         }
         transpose_64x64(cond, cond);
         layer(bs, cond, low);
@@ -215,14 +223,16 @@ void apply_benes(unsigned char *r, const unsigned char *bits, int rev) {
 
     for (low = 0; low <= 5; low++) {
         for (i = 0; i < 32; i++) {
-            cond[i] = load8(cond_ptr + i * 8);
+            cond[i] = load8(cond_ptr);
+            cond_ptr += 8;
         }
         layer(bs, cond, low);
         cond_ptr += inc;
     }
     for (low = 4; low >= 0; low--) {
         for (i = 0; i < 32; i++) {
-            cond[i] = load8(cond_ptr + i * 8);
+            cond[i] = load8(cond_ptr );
+            cond_ptr += 8;
         }
         layer(bs, cond, low);
         cond_ptr += inc;
@@ -232,7 +242,8 @@ void apply_benes(unsigned char *r, const unsigned char *bits, int rev) {
 
     for (low = 5; low >= 0; low--) {
         for (i = 0; i < 64; i++) {
-            cond[i] = load4(cond_ptr + i * 4);
+            cond[i] = load4(cond_ptr);
+            cond_ptr += 4;
         }
         transpose_64x64(cond, cond);
         layer(bs, cond, low);
