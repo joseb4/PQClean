@@ -9,10 +9,12 @@
 
 #if GFBITS == 13
 static const int f_z_coeffs[] = {4, 3, 1, 0}; // x^13 + x^4 + x^3 + x + 1
-//static const int F_y_coeffs[] = {7, 4, 1, 0}; // y^128 + y^7 + y^2 + y + 1. Monic irreducible polynomial over GF(2^(mt))
+static const int F_y_coeff_degs[] = {7, 4, 1, 0}; // y^128 + y^7 + y^2 + y + 1. Monic irreducible polynomial over GF(2^(mt))
+static const gf F_y_coeffs[] = {1, 1, 1, 1}; // y^128 + y^7 + y^2 + y + 1. Monic irreducible polynomial over GF(2^(mt))
 #elif GFBITS == 12
 static const int f_z_coeffs[] = {3, 0}; // x^12 + x^3 + 1
-//static const int F_y_coeffs[] = {3, 1, 0}; // y^64 + y^3 + y + z.
+static const int F_y_coeff_degs[] = {3, 1, 0}; // y^64 + y^3 + y + z.. Monic irreducible polynomial over GF(2^(mt))
+static const int F_y_coeffs[] = {1, 1, 2}; // y^64 + y^3 + y + z.. Monic irreducible polynomial over GF(2^(mt))
 #else
 #error "Unsupported GFBITS value"
 #endif
@@ -252,18 +254,24 @@ void GF_mul(gf *out, gf *in0, gf *in1) {
 
     // Modular reduction
 
-    for (i = (SYS_T - 1) * 2; i >= SYS_T; i--) {
+    for (i = (SYS_T - 1) * 2; i >= SYS_T; i--) { // from 2*t-2 down to t
         // F(y) se usa para representar GF(2^(mt)) We need to modify this for different degrees
-        #if GFBITS == 13
-        prod[i - SYS_T + 7] ^= prod[i];
-        prod[i - SYS_T + 2] ^= prod[i];
-        prod[i - SYS_T + 1] ^= prod[i];
-        prod[i - SYS_T + 0] ^= prod[i];
-        #elif GFBITS == 12
-        prod[i - SYS_T + 3] ^= prod[i];
-        prod[i - SYS_T + 1] ^= prod[i];
-        prod[i - SYS_T + 0] ^= gf_mul(prod[i], (gf) 2);
-        #endif
+        // We use that y^128 = y^7 + y^2 + y + 1, We make this transformation and make the addition to simplify
+        // so we reduce any y^k with k>=128
+        // #if GFBITS == 13
+        // // The idea is substituting any y^i with y^(i-128)*(y^7 + y^3 + y + 1). If the coefficient of y^i is 1, we need to add in degree i-128, i-128+1, i-128+3, i-128+4
+        // prod[i - SYS_T + 7] ^= prod[i];
+        // prod[i - SYS_T + 2] ^= prod[i];
+        // prod[i - SYS_T + 1] ^= prod[i];
+        // prod[i - SYS_T + 0] ^= prod[i];
+        // #elif GFBITS == 12
+        for (int k = 0; k < sizeof(F_y_coeff_degs)/sizeof(F_y_coeff_degs[0]); k++) {
+            prod[i - SYS_T + F_y_coeff_degs[k]] ^= gf_mul(prod[i], (gf)F_y_coeffs[k]);
+        }
+        // prod[i - SYS_T + 3] ^= gf_mul(prod[i], (gf) 1);
+        // prod[i - SYS_T + 1] ^= gf_mul(prod[i], (gf) 1);
+        // prod[i - SYS_T + 0] ^= gf_mul(prod[i], (gf) 2);
+        // #endif
     }
     
 

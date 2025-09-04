@@ -148,7 +148,9 @@ int main(void) {
         }
         FILE *f = fopen("same_sample.bin", "ab");
         if (f) {
+            fwrite(w_bio, 1, SYS_N/8, f);
             fwrite(v, 1, SYS_N/8, f);
+            fwrite(id_x, 1, 32, f);
             fclose(f);
         } else {
             fprintf(stderr, "Error opening file\n");
@@ -172,14 +174,16 @@ int main(void) {
         }
         FILE *ff = fopen("same_instance.bin", "ab");
         if (ff) {
+            fwrite(w_bio_copy, 1, SYS_N/8, ff);
             fwrite(v, 1, SYS_N/8, ff);
+            fwrite(id_x, 1, 32, ff);
             fclose(ff);
         } else {
             fprintf(stderr, "Error opening file\n");
         }
     
 
-        // FOR RANDOM SAMPLE
+    // FOR RANDOM SAMPLE
 
     // Generate w_bio (fixed for all iterations)
         for (size_t i = 0; i < 128; i++) {
@@ -205,7 +209,9 @@ int main(void) {
 
         FILE *fff = fopen("diff_sample.bin", "ab");
         if (fff) {
+            fwrite(w_bio_copy, 1, SYS_N/8, fff);
             fwrite(v, 1, SYS_N/8, fff);
+            fwrite(id_x, 1, 32, fff);
             fclose(fff);
         } else {
             fprintf(stderr, "Error opening file\n");
